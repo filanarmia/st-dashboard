@@ -3,8 +3,9 @@ import streamlit as st
 import matplotlib.pyplot as plt
 
 # Load Excel data for both sheets
-data_master = pd.read_excel("C:/Users/fiaimran/Documents/APG Workshop 2024/2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Registrations (Master list)")
-data_private = pd.read_excel("C:/Users/fiaimran/Documents/APG Workshop 2024/2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Private sector nominees")
+data_master = pd.read_excel("2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Registrations (Master list)")
+data_private = pd.read_excel("2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Private sector nominees")
+
 
 # Create tabs
 tab1, tab2 = st.tabs(["Registrations (Master list)", "Private sector nominees"])

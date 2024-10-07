@@ -6,7 +6,6 @@ import plotly.express as px
 data_master = pd.read_excel("2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Registrations (Master list)")
 data_private = pd.read_excel("2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Private sector nominees")
 
-
 # Create tabs
 tab1, tab2 = st.tabs(["Registrations (Master list)", "Private sector nominees"])
 
@@ -117,4 +116,3 @@ with tab2:
     # Optional: Displaying data for verification
     st.write("Private Sector Nominees Data:")
     st.write(data_private[['First Name', 'Last Name', 'Member', 'Cyber-enabled fraud/scams stream', 'Abuse of legal persons stream']])
-

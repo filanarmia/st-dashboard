@@ -78,11 +78,7 @@ with tab1:
     # Passport Number Metric
     passport_count = data_master[data_master['Passport Number'].notna()].shape[0]
     st.metric(label="Participants with Passport Number", value=passport_count)
-
-    # Display filtered data
-    # st.write("Master List:")
-    # st.write(data_master[['First Name', 'Last Name', 'Country', 'Passport Number', 'Dietary Requirements', 'Cyber-enabled fraud/scams stream', 'Abuse of legal persons stream', 'Bank Negara Museum and Art Gallery tour', 'Official dinner']])
-
+    
 # -------- Tab 2: Private Sector Nominees --------
 with tab2:
     st.title("Private Sector Nominees Dashboard")
@@ -112,7 +108,3 @@ with tab2:
     st.title("Session Participation (Private Sector Nominees)")
     st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
     st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
-
-    # Optional: Displaying data for verification
-    # st.write("Private Sector Nominees Data:")
-    # st.write(data_private[['First Name', 'Last Name', 'Member', 'Cyber-enabled fraud/scams stream', 'Abuse of legal persons stream']])

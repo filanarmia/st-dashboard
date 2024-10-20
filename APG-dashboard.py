@@ -3,9 +3,9 @@ import streamlit as st
 import plotly.express as px
 
 # Load Excel data for both sheets
-data_master = pd.read_excel("2024 Typologies Workshop registrations.xlsx", sheet_name="Public Sector")
-data_private = pd.read_excel("2024 Typologies Workshop registrations.xlsx", sheet_name="Private sector nominees")
-data_presenters = pd.read_excel("2024 Typologies Workshop registrations.xlsx", sheet_name="Presenters")
+data_master = pd.read_excel("2024 Typologies Workshop registrations v1.xlsx", sheet_name="Public Sector")
+data_private = pd.read_excel("2024 Typologies Workshop registrations v1.xlsx", sheet_name="Private sector nominees")
+data_presenters = pd.read_excel("2024 Typologies Workshop registrations v1.xlsx", sheet_name="Presenters")
 
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Registrations (Master list)", "Private sector nominees", "Presenters", "Stats"])

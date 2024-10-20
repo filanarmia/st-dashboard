@@ -3,18 +3,19 @@ import streamlit as st
 import plotly.express as px
 
 # Load Excel data for both sheets
-data_master = pd.read_excel("2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Registrations (Master list)")
-data_private = pd.read_excel("2024 Typologies Workshop registrations 30092024.xlsx", sheet_name="Private sector nominees")
+data_master = pd.read_excel("2024 Typologies Workshop registrations.xlsx", sheet_name="Public Sector")
+data_private = pd.read_excel("2024 Typologies Workshop registrations.xlsx", sheet_name="Private sector nominees")
+data_presenters = pd.read_excel("2024 Typologies Workshop registrations.xlsx", sheet_name="Presenters")
 
 # Create tabs
-tab1, tab2 = st.tabs(["Registrations (Master list)", "Private sector nominees"])
+tab1, tab2, tab3, tab4 = st.tabs(["Registrations (Master list)", "Private sector nominees", "Presenters", "Stats"])
 
 # -------- Tab 1: Registrations (Master list) --------
 with tab1:
     st.title("Workshop Participant Dashboard (Master List)")
 
     # Total Number of Participants (using count of 'First Name')
-    total_participants = data_master['First Name'].count()
+    total_participants = data_master['No'].count()
     st.metric(label="Total Number of Participants", value=total_participants)
 
     # Handle missing values in 'Country' column
@@ -108,3 +109,152 @@ with tab2:
     st.title("Session Participation (Private Sector Nominees)")
     st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
     st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
+
+
+# -------- Tab 3: Presenters --------
+with tab3:
+    st.title("Presenters Dashboard")
+
+    # Count the number of unique presenters based on 'Name' column
+    total_presenters = data_presenters['No'].nunique()
+    st.metric(label="Total Number of Presenters", value=total_presenters)
+
+    # Count by Role (Facilitator, Presenter, Panelist, Moderator, Blank)
+    role_counts = data_presenters['Role'].fillna('Blank').value_counts().reset_index()
+    role_counts.columns = ['Role', 'Count']
+    
+    # Plot the role breakdown
+    fig_role = px.bar(
+        role_counts,
+        x='Role',
+        y='Count',
+        title='Role Breakdown',
+        labels={'Role': 'Role', 'Count': 'Number of Presenters'}
+    )
+    st.plotly_chart(fig_role)
+
+    # Presenters breakdown by Day and Stream (e.g., Day 1 by Stream)
+    st.title("Presenters Breakdown by Day and Stream")
+    day_stream_counts = data_presenters.groupby(['Day', 'Stream']).size().reset_index(name='Count')
+    
+    fig_day_stream = px.bar(
+        day_stream_counts,
+        x='Day',
+        y='Count',
+        color='Stream',
+        title='Presenters by Day and Stream',
+        labels={'Day': 'Day', 'Count': 'Number of Presenters', 'Stream': 'Stream'}
+    )
+    st.plotly_chart(fig_day_stream)
+
+# -------- Tab 4: Stats --------
+with tab4:
+    st.title("Overall Stats Dashboard")
+
+    # Filter 'Registered on website' where the value is 'No' or empty (NaN)
+    filtered_presenters = data_presenters[(data_presenters['Registered on website'] == 'No') | (data_presenters['Registered on website'].isna())]
+    
+    # Combine total participants from all sheets, applying the filter for 'Registered on website' == 'No' or empty
+    total_filtered_master = data_master['No'].count()  # Master list doesn't have a registered column
+    total_filtered_private = data_private['No'].count()  # Assuming Private Sector doesn't have a registered column
+
+    # For presenters, we take the unique count of 'No' column from the filtered presenters
+    total_filtered_presenters = filtered_presenters['No'].nunique()
+
+    # Sum up all the filtered totals
+    total_filtered_participants = total_filtered_master + total_filtered_private + total_filtered_presenters
+
+    # Display the total number of participants (Filtered)
+    st.metric(label="Total Number of Participants (Filtered)", value=total_filtered_participants)
+
+    # -------- Breakdown by Day and Stream --------
+    
+    # Function to calculate total participants per day and stream (without plenary session for master and private sector)
+    def calculate_participants_for_stream_day(stream_name, day_value):
+        if stream_name == 'Plenary session':
+            # Use pre-computed plenary session value for master list and private sector
+            master_participants = data_master.shape[0]  # Assuming this represents plenary participants from master list
+            private_participants = 0  # Assuming no plenary session from private sector, adjust if needed
+        elif stream_name == 'OC Meeting' and day_value == 'Day 1':
+            # All participants from the master list attend the OC Meeting
+            master_participants = data_master.shape[0]
+            private_participants = 0  # No need to include private sector or presenters for OC Meeting
+        else:
+            # From Registrations (Master List) for other streams
+            master_participants = data_master[data_master[f'{stream_name} stream'] == 'Yes'].shape[0]
+            # From Private Sector for other streams
+            private_participants = data_private[data_private[f'{stream_name} stream'] == 'Yes'].shape[0]
+
+        # From Presenters, filter by stream, day, and 'Registered on website'
+        presenter_participants = filtered_presenters[
+            (filtered_presenters['Stream'] == stream_name) & 
+            (filtered_presenters['Day'] == day_value)
+        ]['No'].nunique()
+
+        # Return the sum of all participants from the three sources
+        return master_participants + private_participants + presenter_participants
+
+    # Prepare data for bar chart visualization by Day and Stream (excluding plenary session for Day 2)
+    def get_day_stream_data():
+        day_stream_data = []
+        for day in ['Day 1', 'Day 2', 'Day 3']:
+            # Exclude Plenary session for Day 2 and add OC Meeting for Day 1
+            streams = ['Plenary session', 'Abuse of legal persons', 'Cyber-enabled fraud/scams', 'OC Meeting'] if day == 'Day 1' else ['Abuse of legal persons', 'Cyber-enabled fraud/scams']
+            for stream in streams:
+                total_participants = calculate_participants_for_stream_day(stream, day)
+                day_stream_data.append({'Day': day, 'Stream': stream, 'Participants': total_participants})
+        return pd.DataFrame(day_stream_data)
+
+    # Generate bar chart for day-stream breakdown
+    st.subheader("Participants Breakdown by Day and Stream")
+    day_stream_data = get_day_stream_data()
+
+    fig_day_stream = px.bar(
+        day_stream_data,
+        x='Day',
+        y='Participants',
+        color='Stream',
+        title='Participants by Day and Stream',
+        labels={'Day': 'Day', 'Participants': 'Number of Participants', 'Stream': 'Stream'},
+        category_orders={"Day": ['Day 1', 'Day 2', 'Day 3']}  # Ensure correct order of days
+    )
+    st.plotly_chart(fig_day_stream)
+
+    # Display breakdown for Day 1
+    st.subheader("Day 1 Breakdown")
+    
+    # Use pre-computed plenary session value for Day 1
+    plenary_day1 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
+                    (filtered_presenters['Day'] == 'Day 1')].shape[0]
+    st.metric("Plenary Session (Day 1)", value=plenary_day1)
+
+    # Add OC Meeting for Day 1 (all participants from Master List)
+    oc_meeting_day1 = data_master.shape[0]  # All participants in the Master List
+    st.metric("OC Meeting (Day 1)", value=oc_meeting_day1)
+    
+    abuse_day1 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 1')
+    st.metric("Abuse of Legal Persons (Day 1)", value=abuse_day1)
+
+    cyber_day1 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 1')
+    st.metric("Cyber-enabled Fraud/Scams (Day 1)", value=cyber_day1)
+
+    # Display breakdown for Day 2 (no plenary session)
+    st.subheader("Day 2 Breakdown")
+    abuse_day2 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 2')
+    st.metric("Abuse of Legal Persons (Day 2)", value=abuse_day2)
+
+    cyber_day2 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 2')
+    st.metric("Cyber-enabled Fraud/Scams (Day 2)", value=cyber_day2)
+
+    # Display breakdown for Day 3
+    st.subheader("Day 3 Breakdown")
+
+    plenary_day3 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
+                    (filtered_presenters['Day'] == 'Day 3')].shape[0]
+    st.metric("Plenary Session (Day 3)", value=plenary_day3)
+
+    abuse_day3 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 3')
+    st.metric("Abuse of Legal Persons (Day 3)", value=abuse_day3)
+
+    cyber_day3 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 3')
+    st.metric("Cyber-enabled Fraud/Scams (Day 3)", value=cyber_day3)

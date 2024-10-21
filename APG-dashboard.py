@@ -194,21 +194,64 @@ with tab4:
         # Return the sum of all participants from the three sources
         return master_participants + private_participants + presenter_participants
 
-    # Prepare data for bar chart visualization by Day and Stream (excluding plenary session for Day 2)
+    # ---- Table for Day 1 ----
+    st.subheader("Day 1 Breakdown (Table)")
+    plenary_day1 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
+                    (filtered_presenters['Day'] == 'Day 1')].shape[0]
+    oc_meeting_day1 = data_master.shape[0]  # All participants in the Master List
+    abuse_day1 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 1')
+    cyber_day1 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 1')
+
+    day1_data = {
+        'Session': ['Plenary Session', 'OC Meeting', 'Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams'],
+        'Participants': [plenary_day1, oc_meeting_day1, abuse_day1, cyber_day1]
+    }
+    st.table(pd.DataFrame(day1_data))
+
+    # ---- Table for Day 2 ----
+    st.subheader("Day 2 Breakdown (Table)")
+    abuse_day2 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 2')
+    cyber_day2 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 2')
+
+    day2_data = {
+        'Session': ['Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams'],
+        'Participants': [abuse_day2, cyber_day2]
+    }
+    st.table(pd.DataFrame(day2_data))
+
+    # ---- Table for Day 3 ----
+    st.subheader("Day 3 Breakdown (Table)")
+    plenary_day3 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
+                    (filtered_presenters['Day'] == 'Day 3')].shape[0]
+    abuse_day3 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 3')
+    cyber_day3 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 3')
+
+    day3_data = {
+        'Session': ['Plenary Session', 'Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams'],
+        'Participants': [plenary_day3, abuse_day3, cyber_day3]
+    }
+    st.table(pd.DataFrame(day3_data))
+
+    # -------- Generate bar chart for day-stream breakdown --------
+    st.subheader("Participants Breakdown by Day and Stream (Bar Chart)")
     def get_day_stream_data():
         day_stream_data = []
         for day in ['Day 1', 'Day 2', 'Day 3']:
-            # Exclude Plenary session for Day 2 and add OC Meeting for Day 1
-            streams = ['Plenary session', 'Abuse of legal persons', 'Cyber-enabled fraud/scams', 'OC Meeting'] if day == 'Day 1' else ['Abuse of legal persons', 'Cyber-enabled fraud/scams']
+            # Include Plenary session for Day 1 and Day 3, and OC Meeting only for Day 1
+            if day == 'Day 1':
+                streams = ['Plenary session', 'Abuse of legal persons', 'Cyber-enabled fraud/scams', 'OC Meeting']
+            elif day == 'Day 3':
+                streams = ['Plenary session', 'Abuse of legal persons', 'Cyber-enabled fraud/scams']
+            else:
+                streams = ['Abuse of legal persons', 'Cyber-enabled fraud/scams']  # No plenary session for Day 2
+
             for stream in streams:
                 total_participants = calculate_participants_for_stream_day(stream, day)
                 day_stream_data.append({'Day': day, 'Stream': stream, 'Participants': total_participants})
         return pd.DataFrame(day_stream_data)
 
     # Generate bar chart for day-stream breakdown
-    st.subheader("Participants Breakdown by Day and Stream")
     day_stream_data = get_day_stream_data()
-
     fig_day_stream = px.bar(
         day_stream_data,
         x='Day',
@@ -219,42 +262,3 @@ with tab4:
         category_orders={"Day": ['Day 1', 'Day 2', 'Day 3']}  # Ensure correct order of days
     )
     st.plotly_chart(fig_day_stream)
-
-    # Display breakdown for Day 1
-    st.subheader("Day 1 Breakdown")
-    
-    # Use pre-computed plenary session value for Day 1
-    plenary_day1 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
-                    (filtered_presenters['Day'] == 'Day 1')].shape[0]
-    st.metric("Plenary Session (Day 1)", value=plenary_day1)
-
-    # Add OC Meeting for Day 1 (all participants from Master List)
-    oc_meeting_day1 = data_master.shape[0]  # All participants in the Master List
-    st.metric("OC Meeting (Day 1)", value=oc_meeting_day1)
-    
-    abuse_day1 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 1')
-    st.metric("Abuse of Legal Persons (Day 1)", value=abuse_day1)
-
-    cyber_day1 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 1')
-    st.metric("Cyber-enabled Fraud/Scams (Day 1)", value=cyber_day1)
-
-    # Display breakdown for Day 2 (no plenary session)
-    st.subheader("Day 2 Breakdown")
-    abuse_day2 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 2')
-    st.metric("Abuse of Legal Persons (Day 2)", value=abuse_day2)
-
-    cyber_day2 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 2')
-    st.metric("Cyber-enabled Fraud/Scams (Day 2)", value=cyber_day2)
-
-    # Display breakdown for Day 3
-    st.subheader("Day 3 Breakdown")
-
-    plenary_day3 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
-                    (filtered_presenters['Day'] == 'Day 3')].shape[0]
-    st.metric("Plenary Session (Day 3)", value=plenary_day3)
-
-    abuse_day3 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 3')
-    st.metric("Abuse of Legal Persons (Day 3)", value=abuse_day3)
-
-    cyber_day3 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 3')
-    st.metric("Cyber-enabled Fraud/Scams (Day 3)", value=cyber_day3)

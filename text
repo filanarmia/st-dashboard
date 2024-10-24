@@ -1,0 +1,3 @@
+sudo the unit file, source configuration file or drop-ins of dashboard.service changed on disk. Run 'systemctl daemon-reload' to reload units
+
+i added dashboard.service to the system, so when i run sudo systemctl start dashboard got above error

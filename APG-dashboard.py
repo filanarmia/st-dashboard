@@ -162,7 +162,7 @@ def show_dashboard():
 
         # Total Number of Participants (using count of 'First Name')
         total_participants = data_master['No'].count()
-        st.metric(label="Total Number of Participants", value=total_participants)
+        st.metric(label="Total Number of Participants (Public Sector)", value=total_participants)
 
         # Handle missing values in 'Country' column
         data_master['Country'] = data_master['Country'].fillna('Unknown')
@@ -177,7 +177,7 @@ def show_dashboard():
             data_master = data_master[data_master['Organisation'] == selected_organization]
 
         # -- Country Breakdown Chart with Plotly (Sorted by highest count) --
-        st.title("Country Breakdown Chart")
+        st.title("Country Breakdown")
         country_counts_chart = data_master['Country'].value_counts().reset_index()
         country_counts_chart.columns = ['Country', 'Count']
         country_counts_chart = country_counts_chart.sort_values(by='Count', ascending=False)
@@ -186,7 +186,7 @@ def show_dashboard():
             country_counts_chart,
             x='Country',
             y='Count',
-            title='Country Breakdown (Master List)',
+            title='Country',
             labels={'Country': 'Country', 'Count': 'Number of Participants'}
         )
         st.plotly_chart(fig_country_master)
@@ -194,7 +194,8 @@ def show_dashboard():
         # -- Dietary Requirements Breakdown with Plotly (Sorted by highest count) --
         st.title("Dietary Requirements Breakdown")
         data_master['Dietary Requirements'] = data_master['Dietary Requirements'].fillna('None')
-        dietary_counts_chart = data_master['Dietary Requirements'].value_counts().reset_index()
+        dietary_filtered = data_master[data_master['Dietary Requirements'] != 'None']
+        dietary_counts_chart = dietary_filtered['Dietary Requirements'].value_counts().reset_index()
         dietary_counts_chart.columns = ['Dietary Requirements', 'Count']
         dietary_counts_chart = dietary_counts_chart.sort_values(by='Count', ascending=False)
 
@@ -202,13 +203,13 @@ def show_dashboard():
             dietary_counts_chart,
             x='Dietary Requirements',
             y='Count',
-            title='Dietary Requirements Breakdown (Master List)',
+            title='Dietary Requirements',
             labels={'Dietary Requirements': 'Dietary Requirements', 'Count': 'Number of Participants'}
         )
         st.plotly_chart(fig_dietary_master)
 
         # Session Participation Metrics
-        st.title("Session Participation (Master List)")
+        st.title("Session Participation")
 
         # Count participants in each stream/tour/dinner
         abuse_stream_count = data_master[data_master['Abuse of legal persons stream'] == 'Yes'].shape[0]
@@ -228,7 +229,7 @@ def show_dashboard():
         
     # -------- Tab 3: Private Sector Nominees --------
     with tab3:
-        st.title("Private Sector Nominees Dashboard")
+        st.title("Private Sector Dashboard")
 
         # Total Number of Participants (using 'No' column)
         total_participants_private = data_private['No'].count()
@@ -243,10 +244,27 @@ def show_dashboard():
             country_counts_private,
             x='Member',
             y='Count',
-            title='Country Breakdown (Private Sector Nominees)',
+            title='Country Breakdown',
             labels={'Member': 'Country', 'Count': 'Number of Participants'}
         )
         st.plotly_chart(fig_country_private)
+
+        # -- Dietary Requirements Breakdown with Plotly (Sorted by highest count) --
+        st.title("Dietary Requirements Breakdown")
+        data_private['Dietary requirements'] = data_private['Dietary requirements'].fillna('None')
+        dietary_filtered = data_private[data_private['Dietary requirements'] != 'None']
+        dietary_counts_chart = dietary_filtered['Dietary requirements'].value_counts().reset_index()
+        dietary_counts_chart.columns = ['Dietary Requirements', 'Count']
+        dietary_counts_chart = dietary_counts_chart.sort_values(by='Count', ascending=False)
+
+        fig_dietary_master = px.bar(
+            dietary_counts_chart,
+            x='Dietary Requirements',
+            y='Count',
+            title='Dietary Requirements',
+            labels={'Dietary Requirements': 'Dietary Requirements', 'Count': 'Number of Participants'}
+        )
+        st.plotly_chart(fig_dietary_master)
 
         # Count participants in streams: 'Cyber-enabled fraud/scams stream' and 'Abuse of legal persons stream'
         cyber_stream_count = data_private[data_private['Cyber-enabled fraud/scams stream'] == 'Yes'].shape[0]
@@ -254,7 +272,7 @@ def show_dashboard():
         museum_tour_count = data_private[data_private['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
         official_dinner_count = data_private[data_private['Official dinner'] == 'Yes'].shape[0]
 
-        st.title("Session Participation (Private Sector Nominees)")
+        st.title("Session Participation")
         st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
         st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
         st.metric(label="Bank Negara Museum and Art Gallery Tour", value=museum_tour_count)

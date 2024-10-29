@@ -6,6 +6,7 @@ import plotly.express as px
 data_master = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Public Sector")
 data_private = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Private sector nominees")
 data_presenters = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Presenters")
+data_master_list = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Master List")
 
 # Create tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Master (Stats)", "Public sector", "Private sector", "Presenters"])
@@ -36,106 +37,97 @@ with tab1:
     total_museum_tour_participants = museum_tour_count_public + museum_tour_count_private
     total_dinner_participants = official_dinner_count_public + official_dinner_count_private
 
-    # Display the total number of participants (Filtered)
-    st.metric(label="Total Number of Participants", value=total_filtered_participants)
-    st.metric(label="Total Number of Museum Tour", value=total_museum_tour_participants)
-    st.metric(label="Total Number of Official Dinner", value=total_dinner_participants)
+    # Display the total number of participants (Filtered) side by side
+    col1, col2, col3 = st.columns(3)  # Create 3 columns
 
-    # -------- Breakdown by Day and Stream --------
-    
-    # Function to calculate total participants per day and stream (without plenary session for master and private sector)
-    def calculate_participants_for_stream_day(stream_name, day_value):
-        if stream_name == 'Plenary session':
-            # Use pre-computed plenary session value for master list and private sector
-            master_participants = data_master.shape[0]  # Assuming this represents plenary participants from master list
-            private_participants = 0  # Assuming no plenary session from private sector, adjust if needed
-        elif stream_name == 'OC Meeting' and day_value == 'Day 1':
-            # All participants from the master list attend the OC Meeting
-            master_participants = data_master.shape[0]
-            private_participants = 0  # No need to include private sector or presenters for OC Meeting
-        else:
-            # From Registrations (Master List) for other streams
-            master_participants = data_master[data_master[f'{stream_name} stream'] == 'Yes'].shape[0]
-            # From Private Sector for other streams
-            private_participants = data_private[data_private[f'{stream_name} stream'] == 'Yes'].shape[0]
+    # Display metrics in each column with partial bold text
+    with col1:
+        st.markdown("Total Number of **Participants**")
+        st.metric(label="Participants", value=total_filtered_participants, label_visibility="collapsed")
 
-        # From Presenters, filter by stream, day, and 'Registered on website'
-        presenter_participants = filtered_presenters[
-            (filtered_presenters['Stream'] == stream_name) & 
-            (filtered_presenters['Day'] == day_value)
-        ]['No'].nunique()
+    with col2:
+        st.markdown("Total Number of **Museum Tour**")
+        st.metric(label="Museum Tour", value=total_museum_tour_participants, label_visibility="collapsed")
 
-        # Return the sum of all participants from the three sources
-        return master_participants + private_participants + presenter_participants
+    with col3:
+        st.markdown("Total Number of **Official Dinner**")
+        st.metric(label="Official Dinner", value=total_dinner_participants, label_visibility="collapsed")
 
-    # ---- Table for Day 1 ----
-    st.subheader("Day 1 Breakdown (Table)")
-    plenary_day1 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
-                    (filtered_presenters['Day'] == 'Day 1')].shape[0]
-    oc_meeting_day1 = data_master.shape[0]  # All participants in the Master List
-    abuse_day1 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 1')
-    cyber_day1 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 1')
+    # -------- Dietary Requirements Breakdown --------
+    # Filter out 'None', 'Halal', and empty values from 'Dietary Requirements'
+    filtered_dietary_data = data_master_list[
+        (data_master_list['Dietary Requirements'].notna()) & 
+        (data_master_list['Dietary Requirements'] != 'None') & 
+        (data_master_list['Dietary Requirements'] != 'Halal')
+    ]
 
-    day1_data = {
-        'Session': ['Plenary Session', 'OC Meeting', 'Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams'],
-        'Participants': [plenary_day1, oc_meeting_day1, abuse_day1, cyber_day1]
-    }
-    st.table(pd.DataFrame(day1_data))
+    # Process the filtered 'Dietary Requirements' column
+    dietary_counts = filtered_dietary_data['Dietary Requirements'].value_counts().reset_index()
+    dietary_counts.columns = ['Dietary Requirements', 'Count']
 
-    # ---- Table for Day 2 ----
-    st.subheader("Day 2 Breakdown (Table)")
-    abuse_day2 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 2')
-    cyber_day2 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 2')
-
-    day2_data = {
-        'Session': ['Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams'],
-        'Participants': [abuse_day2, cyber_day2]
-    }
-    st.table(pd.DataFrame(day2_data))
-
-    # ---- Table for Day 3 ----
-    st.subheader("Day 3 Breakdown (Table)")
-    plenary_day3 = data_master.shape[0] + filtered_presenters[(filtered_presenters['Stream'] == 'Plenary session') & 
-                    (filtered_presenters['Day'] == 'Day 3')].shape[0]
-    abuse_day3 = calculate_participants_for_stream_day('Abuse of legal persons', 'Day 3')
-    cyber_day3 = calculate_participants_for_stream_day('Cyber-enabled fraud/scams', 'Day 3')
-
-    day3_data = {
-        'Session': ['Plenary Session', 'Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams'],
-        'Participants': [plenary_day3, abuse_day3, cyber_day3]
-    }
-    st.table(pd.DataFrame(day3_data))
-
-    # -------- Generate bar chart for day-stream breakdown --------
-    st.subheader("Participants Breakdown by Day and Stream (Bar Chart)")
-    def get_day_stream_data():
-        day_stream_data = []
-        for day in ['Day 1', 'Day 2', 'Day 3']:
-            # Include Plenary session for Day 1 and Day 3, and OC Meeting only for Day 1
-            if day == 'Day 1':
-                streams = ['Plenary session', 'Abuse of legal persons', 'Cyber-enabled fraud/scams', 'OC Meeting']
-            elif day == 'Day 3':
-                streams = ['Plenary session', 'Abuse of legal persons', 'Cyber-enabled fraud/scams']
-            else:
-                streams = ['Abuse of legal persons', 'Cyber-enabled fraud/scams']  # No plenary session for Day 2
-
-            for stream in streams:
-                total_participants = calculate_participants_for_stream_day(stream, day)
-                day_stream_data.append({'Day': day, 'Stream': stream, 'Participants': total_participants})
-        return pd.DataFrame(day_stream_data)
-
-    # Generate bar chart for day-stream breakdown
-    day_stream_data = get_day_stream_data()
-    fig_day_stream = px.bar(
-        day_stream_data,
-        x='Day',
-        y='Participants',
-        color='Stream',
-        title='Participants by Day and Stream',
-        labels={'Day': 'Day', 'Participants': 'Number of Participants', 'Stream': 'Stream'},
-        category_orders={"Day": ['Day 1', 'Day 2', 'Day 3']}  # Ensure correct order of days
+    # Create a pie chart for dietary requirements using Plotly
+    fig_dietary = px.pie(
+        dietary_counts, 
+        names='Dietary Requirements', 
+        values='Count', 
+        title='Dietary Requirements Breakdown',
+        hole=0.4  # Donut chart style
     )
-    st.plotly_chart(fig_day_stream)
+
+    # Create two columns: one for the pie chart and one for the table with numbers
+    col1, col2 = st.columns([2, 1])  # Adjust column sizes if necessary
+
+    # Display the pie chart in the first column
+    with col1:
+        st.plotly_chart(fig_dietary)
+
+    # Display the dietary requirement counts as a table in the second column
+    with col2:
+        st.write("Dietary Requirements Count")
+        st.table(dietary_counts)
+
+    # -------- Grouped Bar Chart for Stream Participation --------
+    st.subheader("Stream Participation")
+
+    # Count the participants for "Abuse of legal persons stream" (from both the master list and filtered presenters)
+    abuse_count_master = data_master_list[data_master_list['Abuse of legal persons stream'] == 'Yes'].shape[0]
+    abuse_count_presenters = filtered_presenters[filtered_presenters['Stream'].str.contains('Abuse of legal persons', na=False)].shape[0]
+    abuse_total_count = abuse_count_master + abuse_count_presenters
+
+    # Count the participants for "Cyber-enabled fraud/scams stream" (from both the master list and filtered presenters)
+    cyber_count_master = data_master_list[data_master_list['Cyber-enabled fraud/scams stream'] == 'Yes'].shape[0]
+    cyber_count_presenters = filtered_presenters[filtered_presenters['Stream'].str.contains('Cyber enabled fraud/scams', na=False)].shape[0]
+    cyber_total_count = cyber_count_master + cyber_count_presenters
+
+    # Count "OC Meeting" where "Sector" is "Public"
+    oc_meeting_count = data_master_list[data_master_list['Sector'] == 'Public'].shape[0]
+
+    # Count "Plenary session" based on "Public" in "Sector" and check in the presenters
+    plenary_count = (
+        data_master_list[data_master_list['Sector'] == 'Public'].shape[0] +  # Count from master list
+        filtered_presenters[filtered_presenters['Stream'].str.contains('Plenary session', na=False)].shape[0]  # Count from presenters
+    )
+
+    # Prepare the data for the grouped bar chart
+    grouped_data = pd.DataFrame({
+        'Stream': ['Abuse of Legal Persons', 'Cyber-enabled Fraud/Scams', 'OC Meeting', 'Plenary Session'],
+        'Participants': [abuse_total_count, cyber_total_count, oc_meeting_count, plenary_count]
+    })
+
+    # Create the grouped bar chart using Plotly
+    fig_grouped_bar = px.bar(
+        grouped_data,
+        x='Stream',
+        y='Participants',
+        title='Participants by Stream',
+        labels={'Stream': 'Stream', 'Participants': 'Number of Participants'},
+        color='Stream',
+        text='Participants'  # Show the participant numbers on top of the bars
+    )
+
+    # Display the bar chart
+    st.plotly_chart(fig_grouped_bar)
+
 
 # -------- Tab 2: Registrations (Master list) --------
 with tab2:

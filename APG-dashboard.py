@@ -3,152 +3,15 @@ import streamlit as st
 import plotly.express as px
 
 # Load Excel data for both sheets
-data_master = pd.read_excel("2024 Typologies Workshop registrations v1.xlsx", sheet_name="Public Sector")
-data_private = pd.read_excel("2024 Typologies Workshop registrations v1.xlsx", sheet_name="Private sector nominees")
-data_presenters = pd.read_excel("2024 Typologies Workshop registrations v1.xlsx", sheet_name="Presenters")
+data_master = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Public Sector")
+data_private = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Private sector nominees")
+data_presenters = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Presenters")
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Registrations (Master list)", "Private sector nominees", "Presenters", "Stats"])
+tab1, tab2, tab3, tab4 = st.tabs(["Master (Stats)", "Public sector", "Private sector", "Presenters"])
 
-# -------- Tab 1: Registrations (Master list) --------
+# -------- Tab 1: Stats --------
 with tab1:
-    st.title("Workshop Participant Dashboard (Master List)")
-
-    # Total Number of Participants (using count of 'First Name')
-    total_participants = data_master['No'].count()
-    st.metric(label="Total Number of Participants", value=total_participants)
-
-    # Handle missing values in 'Country' column
-    data_master['Country'] = data_master['Country'].fillna('Unknown')
-
-    # -- Filters --
-    selected_country = st.selectbox("Filter by Country", options=["All"] + list(data_master['Country'].unique()))
-    if selected_country != "All":
-        data_master = data_master[data_master['Country'] == selected_country]
-
-    selected_organization = st.selectbox("Filter by Organization", options=["All"] + list(data_master['Organisation'].unique()))
-    if selected_organization != "All":
-        data_master = data_master[data_master['Organisation'] == selected_organization]
-
-    # -- Country Breakdown Chart with Plotly (Sorted by highest count) --
-    st.title("Country Breakdown Chart")
-    country_counts_chart = data_master['Country'].value_counts().reset_index()
-    country_counts_chart.columns = ['Country', 'Count']
-    country_counts_chart = country_counts_chart.sort_values(by='Count', ascending=False)
-
-    fig_country_master = px.bar(
-        country_counts_chart,
-        x='Country',
-        y='Count',
-        title='Country Breakdown (Master List)',
-        labels={'Country': 'Country', 'Count': 'Number of Participants'}
-    )
-    st.plotly_chart(fig_country_master)
-
-    # -- Dietary Requirements Breakdown with Plotly (Sorted by highest count) --
-    st.title("Dietary Requirements Breakdown")
-    data_master['Dietary Requirements'] = data_master['Dietary Requirements'].fillna('None')
-    dietary_counts_chart = data_master['Dietary Requirements'].value_counts().reset_index()
-    dietary_counts_chart.columns = ['Dietary Requirements', 'Count']
-    dietary_counts_chart = dietary_counts_chart.sort_values(by='Count', ascending=False)
-
-    fig_dietary_master = px.bar(
-        dietary_counts_chart,
-        x='Dietary Requirements',
-        y='Count',
-        title='Dietary Requirements Breakdown (Master List)',
-        labels={'Dietary Requirements': 'Dietary Requirements', 'Count': 'Number of Participants'}
-    )
-    st.plotly_chart(fig_dietary_master)
-
-    # Session Participation Metrics
-    st.title("Session Participation (Master List)")
-
-    # Count participants in each stream/tour/dinner
-    abuse_stream_count = data_master[data_master['Abuse of legal persons stream'] == 'Yes'].shape[0]
-    cyber_stream_count = data_master[data_master['Cyber-enabled fraud/scams stream'] == 'Yes'].shape[0]
-    museum_tour_count = data_master[data_master['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
-    official_dinner_count = data_master[data_master['Official dinner'] == 'Yes'].shape[0]
-
-    # Display metrics for sessions
-    st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
-    st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
-    st.metric(label="Bank Negara Museum and Art Gallery Tour", value=museum_tour_count)
-    st.metric(label="Official Dinner", value=official_dinner_count)
-
-    # Passport Number Metric
-    passport_count = data_master[data_master['Passport Number'].notna()].shape[0]
-    st.metric(label="Participants with Passport Number", value=passport_count)
-    
-# -------- Tab 2: Private Sector Nominees --------
-with tab2:
-    st.title("Private Sector Nominees Dashboard")
-
-    # Total Number of Participants (using 'No' column)
-    total_participants_private = data_private['No'].count()
-    st.metric(label="Total Number of Participants (Private Sector)", value=total_participants_private)
-
-    # Breakdown by country (using 'Member' column), sorted by highest count
-    country_counts_private = data_private['Member'].value_counts().reset_index()
-    country_counts_private.columns = ['Member', 'Count']
-    country_counts_private = country_counts_private.sort_values(by='Count', ascending=False)
-
-    fig_country_private = px.bar(
-        country_counts_private,
-        x='Member',
-        y='Count',
-        title='Country Breakdown (Private Sector Nominees)',
-        labels={'Member': 'Country', 'Count': 'Number of Participants'}
-    )
-    st.plotly_chart(fig_country_private)
-
-    # Count participants in streams: 'Cyber-enabled fraud/scams stream' and 'Abuse of legal persons stream'
-    cyber_stream_count = data_private[data_private['Cyber-enabled fraud/scams stream'] == 'Yes'].shape[0]
-    abuse_stream_count = data_private[data_private['Abuse of legal persons stream'] == 'Yes'].shape[0]
-
-    st.title("Session Participation (Private Sector Nominees)")
-    st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
-    st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
-
-
-# -------- Tab 3: Presenters --------
-with tab3:
-    st.title("Presenters Dashboard")
-
-    # Count the number of unique presenters based on 'Name' column
-    total_presenters = data_presenters['No'].nunique()
-    st.metric(label="Total Number of Presenters", value=total_presenters)
-
-    # Count by Role (Facilitator, Presenter, Panelist, Moderator, Blank)
-    role_counts = data_presenters['Role'].fillna('Blank').value_counts().reset_index()
-    role_counts.columns = ['Role', 'Count']
-    
-    # Plot the role breakdown
-    fig_role = px.bar(
-        role_counts,
-        x='Role',
-        y='Count',
-        title='Role Breakdown',
-        labels={'Role': 'Role', 'Count': 'Number of Presenters'}
-    )
-    st.plotly_chart(fig_role)
-
-    # Presenters breakdown by Day and Stream (e.g., Day 1 by Stream)
-    st.title("Presenters Breakdown by Day and Stream")
-    day_stream_counts = data_presenters.groupby(['Day', 'Stream']).size().reset_index(name='Count')
-    
-    fig_day_stream = px.bar(
-        day_stream_counts,
-        x='Day',
-        y='Count',
-        color='Stream',
-        title='Presenters by Day and Stream',
-        labels={'Day': 'Day', 'Count': 'Number of Presenters', 'Stream': 'Stream'}
-    )
-    st.plotly_chart(fig_day_stream)
-
-# -------- Tab 4: Stats --------
-with tab4:
     st.title("Overall Stats Dashboard")
 
     # Filter 'Registered on website' where the value is 'No' or empty (NaN)
@@ -164,8 +27,19 @@ with tab4:
     # Sum up all the filtered totals
     total_filtered_participants = total_filtered_master + total_filtered_private + total_filtered_presenters
 
+    museum_tour_count_public = data_master[data_master['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
+    official_dinner_count_public = data_master[data_master['Official dinner'] == 'Yes'].shape[0]
+
+    museum_tour_count_private = data_private[data_private['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
+    official_dinner_count_private = data_private[data_private['Official dinner'] == 'Yes'].shape[0]
+
+    total_museum_tour_participants = museum_tour_count_public + museum_tour_count_private
+    total_dinner_participants = official_dinner_count_public + official_dinner_count_private
+
     # Display the total number of participants (Filtered)
-    st.metric(label="Total Number of Participants (Filtered)", value=total_filtered_participants)
+    st.metric(label="Total Number of Participants", value=total_filtered_participants)
+    st.metric(label="Total Number of Museum Tour", value=total_museum_tour_participants)
+    st.metric(label="Total Number of Official Dinner", value=total_dinner_participants)
 
     # -------- Breakdown by Day and Stream --------
     
@@ -260,5 +134,146 @@ with tab4:
         title='Participants by Day and Stream',
         labels={'Day': 'Day', 'Participants': 'Number of Participants', 'Stream': 'Stream'},
         category_orders={"Day": ['Day 1', 'Day 2', 'Day 3']}  # Ensure correct order of days
+    )
+    st.plotly_chart(fig_day_stream)
+
+# -------- Tab 2: Registrations (Master list) --------
+with tab2:
+    st.title("Public Participant Dashboard")
+
+    # Total Number of Participants (using count of 'First Name')
+    total_participants = data_master['No'].count()
+    st.metric(label="Total Number of Participants", value=total_participants)
+
+    # Handle missing values in 'Country' column
+    data_master['Country'] = data_master['Country'].fillna('Unknown')
+
+    # -- Filters --
+    selected_country = st.selectbox("Filter by Country", options=["All"] + list(data_master['Country'].unique()))
+    if selected_country != "All":
+        data_master = data_master[data_master['Country'] == selected_country]
+
+    selected_organization = st.selectbox("Filter by Organization", options=["All"] + list(data_master['Organisation'].unique()))
+    if selected_organization != "All":
+        data_master = data_master[data_master['Organisation'] == selected_organization]
+
+    # -- Country Breakdown Chart with Plotly (Sorted by highest count) --
+    st.title("Country Breakdown Chart")
+    country_counts_chart = data_master['Country'].value_counts().reset_index()
+    country_counts_chart.columns = ['Country', 'Count']
+    country_counts_chart = country_counts_chart.sort_values(by='Count', ascending=False)
+
+    fig_country_master = px.bar(
+        country_counts_chart,
+        x='Country',
+        y='Count',
+        title='Country Breakdown (Master List)',
+        labels={'Country': 'Country', 'Count': 'Number of Participants'}
+    )
+    st.plotly_chart(fig_country_master)
+
+    # -- Dietary Requirements Breakdown with Plotly (Sorted by highest count) --
+    st.title("Dietary Requirements Breakdown")
+    data_master['Dietary Requirements'] = data_master['Dietary Requirements'].fillna('None')
+    dietary_counts_chart = data_master['Dietary Requirements'].value_counts().reset_index()
+    dietary_counts_chart.columns = ['Dietary Requirements', 'Count']
+    dietary_counts_chart = dietary_counts_chart.sort_values(by='Count', ascending=False)
+
+    fig_dietary_master = px.bar(
+        dietary_counts_chart,
+        x='Dietary Requirements',
+        y='Count',
+        title='Dietary Requirements Breakdown (Master List)',
+        labels={'Dietary Requirements': 'Dietary Requirements', 'Count': 'Number of Participants'}
+    )
+    st.plotly_chart(fig_dietary_master)
+
+    # Session Participation Metrics
+    st.title("Session Participation (Master List)")
+
+    # Count participants in each stream/tour/dinner
+    abuse_stream_count = data_master[data_master['Abuse of legal persons stream'] == 'Yes'].shape[0]
+    cyber_stream_count = data_master[data_master['Cyber-enabled fraud/scams stream'] == 'Yes'].shape[0]
+    museum_tour_count = data_master[data_master['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
+    official_dinner_count = data_master[data_master['Official dinner'] == 'Yes'].shape[0]
+
+    # Display metrics for sessions
+    st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
+    st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
+    st.metric(label="Bank Negara Museum and Art Gallery Tour", value=museum_tour_count)
+    st.metric(label="Official Dinner", value=official_dinner_count)
+
+    # Passport Number Metric
+    passport_count = data_master[data_master['Passport Number'].notna()].shape[0]
+    st.metric(label="Participants with Passport Number", value=passport_count)
+    
+# -------- Tab 3: Private Sector Nominees --------
+with tab3:
+    st.title("Private Sector Nominees Dashboard")
+
+    # Total Number of Participants (using 'No' column)
+    total_participants_private = data_private['No'].count()
+    st.metric(label="Total Number of Participants (Private Sector)", value=total_participants_private)
+
+    # Breakdown by country (using 'Member' column), sorted by highest count
+    country_counts_private = data_private['Member'].value_counts().reset_index()
+    country_counts_private.columns = ['Member', 'Count']
+    country_counts_private = country_counts_private.sort_values(by='Count', ascending=False)
+
+    fig_country_private = px.bar(
+        country_counts_private,
+        x='Member',
+        y='Count',
+        title='Country Breakdown (Private Sector Nominees)',
+        labels={'Member': 'Country', 'Count': 'Number of Participants'}
+    )
+    st.plotly_chart(fig_country_private)
+
+    # Count participants in streams: 'Cyber-enabled fraud/scams stream' and 'Abuse of legal persons stream'
+    cyber_stream_count = data_private[data_private['Cyber-enabled fraud/scams stream'] == 'Yes'].shape[0]
+    abuse_stream_count = data_private[data_private['Abuse of legal persons stream'] == 'Yes'].shape[0]
+    museum_tour_count = data_private[data_private['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
+    official_dinner_count = data_private[data_private['Official dinner'] == 'Yes'].shape[0]
+
+    st.title("Session Participation (Private Sector Nominees)")
+    st.metric(label="Cyber-enabled Fraud/Scams Stream", value=cyber_stream_count)
+    st.metric(label="Abuse of Legal Persons Stream", value=abuse_stream_count)
+    st.metric(label="Bank Negara Museum and Art Gallery Tour", value=museum_tour_count)
+    st.metric(label="Official Dinner", value=official_dinner_count)
+
+
+# -------- Tab 4: Presenters --------
+with tab4:
+    st.title("Presenters Dashboard")
+
+    # Count the number of unique presenters based on 'Name' column
+    total_presenters = data_presenters['No'].nunique()
+    st.metric(label="Total Number of Presenters", value=total_presenters)
+
+    # Count by Role (Facilitator, Presenter, Panelist, Moderator, Blank)
+    role_counts = data_presenters['Role'].fillna('Blank').value_counts().reset_index()
+    role_counts.columns = ['Role', 'Count']
+    
+    # Plot the role breakdown
+    fig_role = px.bar(
+        role_counts,
+        x='Role',
+        y='Count',
+        title='Role Breakdown',
+        labels={'Role': 'Role', 'Count': 'Number of Presenters'}
+    )
+    st.plotly_chart(fig_role)
+
+    # Presenters breakdown by Day and Stream (e.g., Day 1 by Stream)
+    st.title("Presenters Breakdown by Day and Stream")
+    day_stream_counts = data_presenters.groupby(['Day', 'Stream']).size().reset_index(name='Count')
+    
+    fig_day_stream = px.bar(
+        day_stream_counts,
+        x='Day',
+        y='Count',
+        color='Stream',
+        title='Presenters by Day and Stream',
+        labels={'Day': 'Day', 'Count': 'Number of Presenters', 'Stream': 'Stream'}
     )
     st.plotly_chart(fig_day_stream)

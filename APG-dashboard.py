@@ -30,10 +30,11 @@ def login():
 # Define a function to display the main dashboard (after successful login)
 def show_dashboard():
     # Load Excel data for both sheets
-    data_master = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Public Sector")
-    data_private = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Private sector nominees")
-    data_presenters = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Presenters")
-    data_master_list = pd.read_excel("2024 Typologies Workshop registrations v2.xlsx", sheet_name="Master List")
+    data_master = pd.read_excel("2024 Typologies Workshop registrations v3.xlsx", sheet_name="Public Sector")
+    data_private = pd.read_excel("2024 Typologies Workshop registrations v3.xlsx", sheet_name="Private sector nominees")
+    data_presenters = pd.read_excel("2024 Typologies Workshop registrations v3.xlsx", sheet_name="Presenters")
+    data_master_list = pd.read_excel("2024 Typologies Workshop registrations v3.xlsx", sheet_name="Master List")
+    data_country = pd.read_excel("2024 Typologies Workshop registrations v3.xlsx", sheet_name="Country")
 
     # Create tabs
     tab1, tab2, tab3, tab4 = st.tabs(["Master (Stats)", "Public sector", "Private sector", "Presenters"])
@@ -64,6 +65,9 @@ def show_dashboard():
         total_museum_tour_participants = museum_tour_count_public + museum_tour_count_private
         total_dinner_participants = official_dinner_count_public + official_dinner_count_private
 
+        museum_tour_count_master = data_master_list[data_master_list['Bank Negara Museum and Art Gallery tour'] == 'Yes'].shape[0]
+        official_dinner_count_master = data_master_list[data_master_list['Official dinner'] == 'Yes'].shape[0]
+
         # Display the total number of participants (Filtered) side by side
         col1, col2, col3 = st.columns(3)  # Create 3 columns
 
@@ -74,11 +78,11 @@ def show_dashboard():
 
         with col2:
             st.markdown("Total Number of **Museum Tour**")
-            st.metric(label="Museum Tour", value=total_museum_tour_participants, label_visibility="collapsed")
+            st.metric(label="Museum Tour", value=museum_tour_count_master, label_visibility="collapsed")
 
         with col3:
             st.markdown("Total Number of **Official Dinner**")
-            st.metric(label="Official Dinner", value=total_dinner_participants, label_visibility="collapsed")
+            st.metric(label="Official Dinner", value=official_dinner_count_master, label_visibility="collapsed")
 
         # -------- Dietary Requirements Breakdown --------
         # Filter out 'None', 'Halal', and empty values from 'Dietary Requirements'
@@ -112,6 +116,26 @@ def show_dashboard():
         with col2:
             st.write("Dietary Requirements Count")
             st.table(dietary_counts)
+
+        # Country chart
+        st.subheader("Participants by Country")
+        country_counts = data_country['Country'].value_counts().reset_index()
+        country_counts.columns = ['Country', 'Count']
+        
+        # Create a horizontal bar chart using Plotly
+        fig_country = px.bar(
+        country_counts,
+        x='Count',
+        y='Country',
+        orientation='h',  # Horizontal bar chart
+        title='Participants by Country',
+        labels={'Count': 'Number of Participants', 'Country': 'Country'},
+        text='Count'  # Show the participant numbers on the bars
+        )
+        # Sort countries by count for better readability
+        fig_country.update_layout(yaxis={'categoryorder': 'total ascending'})
+        # Display the bar chart in Streamlit
+        st.plotly_chart(fig_country)
 
         # -------- Grouped Bar Chart for Stream Participation --------
         st.subheader("Stream Participation")
@@ -324,4 +348,3 @@ if st.session_state["logged_in"]:
     show_dashboard()
 else:
     login()
-
